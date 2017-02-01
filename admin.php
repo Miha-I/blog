@@ -22,6 +22,11 @@ class blog
                 throw new Exception('File does not exists: '.$config['db']['initiation']);
             }
         }
+        // Общее число постов в базе данных
+        //$countPosts = $this->PDO->query("SELECT COUNT(*) FROM post")->fetch(PDO::FETCH_NUM);
+        $countPosts = $this->PDO->query("SELECT COUNT(*) FROM post")->fetchColumn();
+        // Общее число страниц
+        $this->total = intval(($countPosts - 1) / intval($config['site']['numPostsOnPage'])) + 1;
         // Аутентификация
         if (!empty($_COOKIE['uid']) && !empty($_COOKIE['key'])) {
             $sql = "SELECT * FROM admin WHERE id = ? AND cookie = ?";
@@ -52,6 +57,26 @@ class blog
         setcookie ("uid", "", time() - 3600, '/');
         setcookie ("key", "", time() - 3600, '/');
         $this->user = null;
+    }
+    // Выборка постов для определённой страницы
+    function getPage($page)
+    {
+        global $config;
+        $num = $config['site']['numPostsOnPage'];
+        // Если значение $page меньше единицы или отрицательно переходим на первую страницу
+        // Если слишком большое, то переходим на последнюю
+        if($page < 0){
+            $this->page = 1;
+        }
+        else if($page > $this->total){
+            $this->page = $this->total;
+        }
+        else{
+            $this->page = $page;
+        }
+        $start = $this->page * $num- $num;
+        $sql = "SELECT * FROM post ORDER BY published_date DESC LIMIT '$start', '$num'";
+        $this->posts = $this->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
     // Выборка данных поста
     function getPost($id)
@@ -141,7 +166,7 @@ try{
             case 'login':
                 $blog->login($_POST['email'], $_POST['pass']);
                 if($blog->user){
-                    $blog->getPosts();
+                    $blog->getPage(1);
                     $page = 'pages/posts.php';
                     //header("Location: /admin.php");
                 }
@@ -158,7 +183,7 @@ try{
                 if($blog->user){
                     $blog->addPost($_POST['title'], $_POST['post']);
                 }
-                $blog->getPosts();
+                $blog->getPage(1);
                 $page = 'pages/posts.php';
                 break;
             // Добавление коментария
@@ -178,7 +203,7 @@ try{
                 if($blog->user && !empty($_POST['id'])){
                     $blog->removePost($_POST['id']);
                 }
-                $blog->getPosts();
+                $blog->getPage(1);
                 $page = 'pages/posts.php';
                 break;
         }
@@ -196,7 +221,7 @@ try{
             // Выход
             case 'logoff':
                 $blog->logoff();
-                $blog->getPosts();
+                $blog->getPage(1);
                 $page = 'pages/posts.php';
                 break;
             // Вывод формы добавления поста
@@ -206,10 +231,17 @@ try{
                 }
                 break;
             // Вывод поста
-            case 'get':
+            case 'post':
                 if(!empty($_GET['id'])){
-                    $blog->getPost($_GET['id']);
+                    $blog->getPost(intval($_GET['id']));
                     $page = 'pages/post.php';
+                }
+                break;
+            // Вывод страницы
+            case 'page':
+                if(!empty($_GET['page'])){
+                    $blog->getPage(intval($_GET['page']));
+                    $page = 'pages/posts.php';
                 }
                 break;
             // Поиск поста
@@ -221,7 +253,7 @@ try{
                 break;
             // Вывод всех постов
             default:
-                $blog->getPosts();
+                $blog->getPage(1);
                 $page = 'pages/posts.php';
                 break;
         }

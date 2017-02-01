@@ -3,10 +3,22 @@
     <h1 class="page-header">Список постов</h1>
     <? foreach ($blog->posts as $post): ?>
         <!-- First Blog Post -->
-        <h2><a href="/?op=get&id=<?=$post['id']?>"><?=$post['title']?></a></h2>
+        <h2><a href="/?op=post&id=<?=$post['id']?>"><?=$post['title']?></a></h2>
         <p><span class="glyphicon glyphicon-time"></span> <?=$post['published_date']?></p>
         <hr>
     <? endforeach; ?>
+    <!-- Pager -->
+    <ul class="pager">
+        <? if($blog->page != 1): ?>
+        <li class="previous">
+            <a href="/?op=page&page=<?=($blog->page - 1)?>">&larr; Назад</a>
+        </li>
+        <? endif; if($blog->page != $blog->total):?>
+        <li class="next">
+            <a href="/?op=page&page=<?=($blog->page + 1)?>">Вперёд &rarr;</a>
+        </li>
+        <? endif; ?>
+    </ul>
 </div>
 <!-- Blog Sidebar Widgets Column -->
 <div class="col-md-4">
